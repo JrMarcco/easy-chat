@@ -16,7 +16,7 @@ pub struct ServerConfig {
 
 #[derive(Debug, Deserialize)]
 pub struct DbConfig {
-    pub url: String,
+    pub dsn: String,
 }
 
 impl AppConfig {

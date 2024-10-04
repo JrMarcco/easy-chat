@@ -1,20 +1,26 @@
 mod api;
 mod config;
+mod error;
 mod model;
 
-use std::{ops::Deref, sync::Arc};
+use anyhow::Context;
+use api::*;
+use axum::{http::Method, routing::get, Router};
+use sqlx::PgPool;
+use std::{fmt::Debug, ops::Deref, sync::Arc};
+use tower_http::cors::{Any, CorsLayer};
 
-use axum::Router;
 pub use config::AppConfig;
+pub use error::AppErr;
 
 #[derive(Debug, Clone)]
-pub(crate) struct AppState {
+pub struct AppState {
     inner: Arc<AppStateInner>,
 }
 
-#[derive(Debug)]
-pub(crate) struct AppStateInner {
+pub struct AppStateInner {
     pub(crate) config: AppConfig,
+    pub(crate) pg: PgPool,
 }
 
 // state.config => state.inner.config
@@ -26,6 +32,38 @@ impl Deref for AppState {
     }
 }
 
-pub fn init_app(config: AppConfig) -> Router {
-    todo!()
+pub async fn init_app(state: AppState) -> Result<Router, AppErr> {
+    let cors = CorsLayer::new()
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
+        .allow_origin(Any)
+        .allow_headers(Any);
+
+    let api = Router::new().layer(cors);
+
+    let app = Router::new()
+        .route("/", get(index_handler))
+        .nest("/api", api)
+        .with_state(state);
+
+    Ok(app)
+}
+
+impl AppState {
+    pub async fn try_new(config: AppConfig) -> Result<Self, AppErr> {
+        let pg = PgPool::connect(&config.db.dsn)
+            .await
+            .context("connectg to db fail")?;
+
+        Ok(Self {
+            inner: Arc::new(AppStateInner { config, pg }),
+        })
+    }
+}
+
+impl Debug for AppStateInner {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AppStateInner")
+            .field("config", &self.config)
+            .finish()
+    }
 }
