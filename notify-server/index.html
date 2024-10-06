@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <ti tle>Notify Server</title>
+</head>
+
+<body>
+    <h1>Notify Server</h1>
+    <div id="messages"></div>
+    <script>
+        var source = new EventSource("/events");
+        source.onmessage = function (event) {
+            console.log("Got event message:", event.data);
+        };
+    </script>
+</body>
+
+
+</html>
