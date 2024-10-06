@@ -5,7 +5,11 @@ mod model;
 
 use anyhow::Context;
 use api::*;
-use axum::{http::Method, routing::get, Router};
+use axum::{
+    http::Method,
+    routing::{get, patch, post},
+    Router,
+};
 use sqlx::PgPool;
 use std::{fmt::Debug, ops::Deref, sync::Arc};
 use tower_http::cors::{Any, CorsLayer};
@@ -38,7 +42,18 @@ pub async fn init_app(state: AppState) -> Result<Router, AppErr> {
         .allow_origin(Any)
         .allow_headers(Any);
 
-    let api = Router::new().layer(cors);
+    let api = Router::new()
+        .route("/signup", post(signup_handler))
+        .route("/signin", post(signin_handler))
+        .route("/chat", get(list_chat_handler).post(create_chat_handler))
+        .route(
+            "/chat/:id",
+            patch(update_chat_handler)
+                .delete(delete_chat_handler)
+                .post(send_message_handler),
+        )
+        .route("/chat/:id/message", get(list_message_handler))
+        .layer(cors);
 
     let app = Router::new()
         .route("/", get(index_handler))
