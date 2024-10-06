@@ -7,11 +7,12 @@ use axum::response::{
 use axum_extra::{headers, TypedHeader};
 use futures::stream::{self, Stream};
 use tokio_stream::StreamExt;
+use tracing::info;
 
 pub(crate) async fn sse_handler(
     TypedHeader(user_agent): TypedHeader<headers::UserAgent>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    println!("{} connected", user_agent.as_str());
+    info!("{} connected", user_agent.as_str());
 
     let stream = stream::repeat_with(|| Event::default().data("hello"))
         .map(Ok)

@@ -29,6 +29,9 @@ pub enum AppErr {
 
     #[error("anyhow error: {0}")]
     AnyhowErr(#[from] anyhow::Error),
+
+    #[error("password hash error: {0}")]
+    PasswdHashErr(#[from] argon2::password_hash::Error),
 }
 
 impl IntoResponse for AppErr {
@@ -37,6 +40,7 @@ impl IntoResponse for AppErr {
             Self::IoErr(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::SqlXErr(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::AnyhowErr(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::PasswdHashErr(_) => StatusCode::UNPROCESSABLE_ENTITY,
         };
 
         (status, Json(ErrOutput::new(self.to_string()))).into_response()

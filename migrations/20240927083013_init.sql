@@ -4,8 +4,7 @@ CREATE TABLE IF NOT EXISTS t_user (
     id BIGINT PRIMARY KEY,
     avatar VARCHAR(128) NOT NULL DEFAULT '',
     username VARCHAR(64) NOT NULL,
-    nickname VARCHAR(64) NOT NULL DEFAULT '',
-    password VARCHAR(128) NOT NULL,
+    passwd VARCHAR(128) NOT NULL,
     email VARCHAR(64) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
@@ -14,9 +13,8 @@ CREATE TABLE IF NOT EXISTS t_user (
 COMMENT ON TABLE t_user IS '用户表';
 COMMENT ON COLUMN t_user.id IS '用户ID';
 COMMENT ON COLUMN t_user.avatar IS '头像';
-COMMENT ON COLUMN t_user.username IS '用户名';
-COMMENT ON COLUMN t_user.nickname IS '昵称';
-COMMENT ON COLUMN t_user.password IS '密码';
+COMMENT ON COLUMN t_user.username IS '用户名（显示用）';
+COMMENT ON COLUMN t_user.passwd IS '密码';
 COMMENT ON COLUMN t_user.email IS '邮箱';
 COMMENT ON COLUMN t_user.created_at IS '创建时间';
 COMMENT ON COLUMN t_user.updated_at IS '更新时间';
