@@ -1,9 +1,9 @@
 use axum::response::IntoResponse;
 
-pub(crate) async fn signin_handler() -> impl IntoResponse {
-    "signin"
+pub(crate) async fn sign_in_handler() -> impl IntoResponse {
+    "sign_in"
 }
 
-pub(crate) async fn signup_handler() -> impl IntoResponse {
-    "signup"
+pub(crate) async fn sign_up_handler() -> impl IntoResponse {
+    "sign_up"
 }

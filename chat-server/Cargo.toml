@@ -30,5 +30,7 @@ sqlx = { version = "0.8.2", features = [
 ] }
 chrono = { workspace = true }
 argon2 = { version = "0.5.3", features = ["std"] }
+jsonwebtoken = "9.3.0"
+uuid = { version = "1.10.0", features = ["v7"] }
 
 [dev-dependencies]

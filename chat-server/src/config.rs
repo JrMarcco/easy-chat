@@ -7,6 +7,7 @@ use serde::Deserialize;
 pub struct AppConfig {
     pub server: ServerConfig,
     pub db: DbConfig,
+    pub auth: AuthConfig,
 }
 
 #[derive(Debug, Deserialize)]
@@ -19,11 +20,17 @@ pub struct DbConfig {
     pub dsn: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct AuthConfig {
+    pub private_key: String,
+    pub public_key: String,
+}
+
 impl AppConfig {
     pub fn try_load() -> Result<Self> {
-        // read from ./config.yaml or /etc/config/easy-chat.yaml or env EASY_CHAT_CONFIG
+        // read from ./application.yaml or /etc/config/easy-chat.yaml or env EASY_CHAT_CONFIG
         let ret = match (
-            File::open("./config.yaml"),
+            File::open("./application.yaml"),
             File::open("/etc/config/easy-chat.yaml"),
             std::env::var("EASY_CHAT_CONFIG"),
         ) {

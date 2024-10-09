@@ -1,7 +1,9 @@
 mod api;
 mod config;
 mod error;
+mod middleware;
 mod model;
+mod util;
 
 use anyhow::Context;
 use api::*;
@@ -13,6 +15,7 @@ use axum::{
 use sqlx::PgPool;
 use std::{fmt::Debug, ops::Deref, sync::Arc};
 use tower_http::cors::{Any, CorsLayer};
+use util::{JwtDecodingKey, JwtEncodingKey};
 
 pub use config::AppConfig;
 pub use error::AppErr;
@@ -25,6 +28,8 @@ pub struct AppState {
 pub struct AppStateInner {
     pub(crate) config: AppConfig,
     pub(crate) pg: PgPool,
+    pub(crate) jwt_ek: JwtEncodingKey,
+    pub(crate) jwt_dk: JwtDecodingKey,
 }
 
 // state.config => state.inner.config
@@ -43,8 +48,8 @@ pub async fn init_app(state: AppState) -> Result<Router, AppErr> {
         .allow_headers(Any);
 
     let api = Router::new()
-        .route("/signup", post(signup_handler))
-        .route("/signin", post(signin_handler))
+        .route("/signup", post(sign_up_handler))
+        .route("/signin", post(sign_in_handler))
         .route("/chat", get(list_chat_handler).post(create_chat_handler))
         .route(
             "/chat/:id",
@@ -69,8 +74,16 @@ impl AppState {
             .await
             .context("connectg to db fail")?;
 
+        let jwt_ek = JwtEncodingKey::load(&config.auth.private_key)?;
+        let jwt_dk = JwtDecodingKey::load(&config.auth.public_key)?;
+
         Ok(Self {
-            inner: Arc::new(AppStateInner { config, pg }),
+            inner: Arc::new(AppStateInner {
+                config,
+                pg,
+                jwt_ek,
+                jwt_dk,
+            }),
         })
     }
 }
