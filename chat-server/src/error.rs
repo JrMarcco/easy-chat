@@ -8,7 +8,7 @@ use thiserror::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ErrOutput {
-    pub msg: String,
+    pub err_msg: String,
 }
 
 #[derive(Debug, Error)]
@@ -22,11 +22,14 @@ pub enum AppErr {
     #[error("anyhow error: {0}")]
     AnyhowErr(#[from] anyhow::Error),
 
+    #[error("password hash error: {0}")]
+    PasswdHashErr(#[from] argon2::password_hash::Error),
+
     #[error("jwt error: {0}")]
     JwtErr(#[from] jsonwebtoken::errors::Error),
 
-    #[error("password hash error: {0}")]
-    PasswdHashErr(#[from] argon2::password_hash::Error),
+    #[error("auth error: {0}")]
+    AuthErr(String),
 }
 
 impl IntoResponse for AppErr {
@@ -37,6 +40,7 @@ impl IntoResponse for AppErr {
             Self::AnyhowErr(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::PasswdHashErr(_) => StatusCode::UNPROCESSABLE_ENTITY,
             Self::JwtErr(_) => StatusCode::UNAUTHORIZED,
+            Self::AuthErr(_) => StatusCode::UNAUTHORIZED,
         };
 
         (status, Json(ErrOutput::new(self.to_string()))).into_response()
@@ -45,6 +49,8 @@ impl IntoResponse for AppErr {
 
 impl ErrOutput {
     pub fn new(error: impl Into<String>) -> Self {
-        Self { msg: error.into() }
+        Self {
+            err_msg: error.into(),
+        }
     }
 }

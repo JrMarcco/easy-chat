@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, PgPool};
 
-use crate::AppErr;
+use crate::{AppErr, AppState};
 
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -76,7 +76,6 @@ fn hash_passwd(passwd: &str) -> Result<String, AppErr> {
     let salt = SaltString::generate(&mut OsRng);
 
     let argon2 = Argon2::default();
-
     let passwd_hash = argon2.hash_password(passwd.as_bytes(), &salt)?.to_string();
 
     Ok(passwd_hash)
@@ -91,4 +90,29 @@ fn verify_passwd(passwd: &str, passwd_hash: &str) -> Result<bool, AppErr> {
         .is_ok();
 
     Ok(is_valid)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::{Ok, Result};
+
+    #[test]
+    fn test_hash_and_verify_passwd() -> Result<()> {
+        let passwd = "test_password";
+        let passwd_hash = hash_passwd(passwd).expect("Failed to hash password");
+
+        assert!(verify_passwd(passwd, &passwd_hash).expect("Failed to verify password"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_verify_invalid_passwd() -> Result<()> {
+        let passwd = "test_password";
+        let invalid_passwd = "invalid_password";
+        let passwd_hash = hash_passwd(passwd).expect("Failed to hash password");
+
+        assert!(!verify_passwd(invalid_passwd, &passwd_hash).expect("Failed to verify password"));
+        Ok(())
+    }
 }

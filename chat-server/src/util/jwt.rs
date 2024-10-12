@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Error};
+use anyhow::Error;
 use chrono::Utc;
 use jsonwebtoken::{
     decode, encode, errors::ErrorKind, Algorithm, DecodingKey, EncodingKey, Validation,
@@ -12,7 +12,7 @@ use super::{JWT_AUD, JWT_EXPIRATION_TIME, JWT_ISS};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
     // user id
-    sub: i64,
+    uid: i64,
     username: String,
     email: String,
     iss: String,
@@ -34,7 +34,7 @@ impl JwtEncodingKey {
         let user = user.into();
 
         let claims = Claims {
-            sub: user.id,
+            uid: user.id,
             username: user.username,
             email: user.email,
             iss: JWT_ISS.to_string(),
@@ -69,12 +69,13 @@ impl JwtDecodingKey {
         let token_data = match decode::<Claims>(token, &self.0, &validation) {
             Ok(td) => td,
             Err(e) => {
-                return Err(AppErr::from(anyhow!(match *e.kind() {
+                let msg = match *e.kind() {
                     ErrorKind::InvalidToken => "invalid token",
                     ErrorKind::InvalidIssuer => "invalid issuer",
                     ErrorKind::ExpiredSignature => "expired token",
-                    _ => "some other err.",
-                })))
+                    _ => "some other error",
+                };
+                return Err(AppErr::AuthErr(msg.to_string()));
             }
         };
 
@@ -112,7 +113,7 @@ mod tests {
 
         let dk = JwtDecodingKey::load(include_str!("../../fixtures/public.pem"))?;
         let claims = dk.verify(&token)?;
-        assert_eq!(claims.sub, user.id);
+        assert_eq!(claims.uid, user.id);
         assert_eq!(claims.username, user.username);
         assert_eq!(claims.email, user.email);
 

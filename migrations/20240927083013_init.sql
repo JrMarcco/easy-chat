@@ -25,9 +25,9 @@ CREATE TYPE chat_type AS ENUM ('single', 'group', 'private_channel', 'public_cha
 -- chat table
 CREATE TABLE IF NOT EXISTS t_chat (
     id BIGINT PRIMARY KEY,
-    name VARCHAR(128) NOT NULL,
-    type chat_type NOT NULL,
-    members BIGINT[] NOT NULL,
+    name VARCHAR(128) NOT NULL DEFAULT '',
+    type chat_type NOT NULL DEFAULT 'single',
+    members BIGINT[] NOT NULL DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
