@@ -5,13 +5,12 @@ use jsonwebtoken::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{model::User, AppErr};
+use crate::{model::SessionUser, AppErr};
 
 use super::{JWT_AUD, JWT_EXPIRATION_TIME, JWT_ISS};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    // user id
     uid: i64,
     username: String,
     email: String,
@@ -30,13 +29,13 @@ impl JwtEncodingKey {
         Ok(Self(ek))
     }
 
-    pub fn sign(&self, user: impl Into<User>) -> Result<String, AppErr> {
-        let user = user.into();
+    pub fn sign(&self, user: impl Into<SessionUser>) -> Result<String, AppErr> {
+        let session_user = user.into();
 
         let claims = Claims {
-            uid: user.id,
-            username: user.username,
-            email: user.email,
+            uid: session_user.id,
+            username: session_user.username,
+            email: session_user.email,
             iss: JWT_ISS.to_string(),
             aud: JWT_AUD.to_string(),
             exp: Utc::now().timestamp() + JWT_EXPIRATION_TIME,
@@ -61,7 +60,7 @@ impl JwtDecodingKey {
         Ok(Self(dk))
     }
 
-    pub fn verify(&self, token: &str) -> Result<Claims, AppErr> {
+    pub fn verify(&self, token: &str) -> Result<SessionUser, AppErr> {
         let mut validation = Validation::new(Algorithm::EdDSA);
         validation.set_issuer(&[JWT_ISS]);
         validation.set_audience(&[JWT_AUD]);
@@ -79,29 +78,30 @@ impl JwtDecodingKey {
             }
         };
 
-        Ok(token_data.claims)
-    }
-}
-
-#[cfg(test)]
-impl User {
-    pub fn new_for_test(id: i64, username: String, email: String) -> Self {
-        Self {
-            id,
-            username,
-            email,
-            passwd: "".to_string(),
-            avatar: "".to_string(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        }
+        let claims = token_data.claims;
+        Ok(SessionUser::new(claims.uid, claims.username, claims.email))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::User;
     use anyhow::{Ok, Result};
+
+    impl User {
+        pub fn new_for_test(id: i64, username: String, email: String) -> Self {
+            Self {
+                id,
+                username,
+                email,
+                passwd: "".to_string(),
+                avatar: "".to_string(),
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+            }
+        }
+    }
 
     #[test]
     fn test_jwt_sign_and_verify() -> Result<()> {
@@ -112,10 +112,10 @@ mod tests {
         assert!(!token.is_empty());
 
         let dk = JwtDecodingKey::load(include_str!("../../fixtures/public.pem"))?;
-        let claims = dk.verify(&token)?;
-        assert_eq!(claims.uid, user.id);
-        assert_eq!(claims.username, user.username);
-        assert_eq!(claims.email, user.email);
+        let session_user = dk.verify(&token)?;
+        assert_eq!(session_user.id, user.id);
+        assert_eq!(session_user.username, user.username);
+        assert_eq!(session_user.email, user.email);
 
         Ok(())
     }

@@ -3,11 +3,11 @@ server:
 db:
   dsn: postgres://jrmarcco:postgres@localhost:5432/chat_db
 auth:
-  pri_key: |
+  private_key: |
     -----BEGIN PRIVATE KEY-----
     MC4CAQAwBQYDK2VwBCIEIMMLN4UYrtGMaXz+bxKxf2dT/0F2LIPS6SWu4+e2QhWP
     -----END PRIVATE KEY-----
-  pub_key: |
+  public_key: |
     -----BEGIN PUBLIC KEY-----
     MCowBQYDK2VwAyEAq+OkOq5VfDUeEomQyha9I+qeFgEGrbQi1I6iOt8gUW0=
     -----END PUBLIC KEY-----

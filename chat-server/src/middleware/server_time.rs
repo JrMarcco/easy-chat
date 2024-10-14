@@ -8,7 +8,7 @@ use tracing::warn;
 use super::{X_REQUEST_ID, X_SERVER_TIME};
 
 #[derive(Clone)]
-struct ServerTimeLayer;
+pub struct ServerTimeLayer;
 
 impl<S> Layer<S> for ServerTimeLayer {
     type Service = ServerTimeMiddleware<S>;
@@ -19,7 +19,7 @@ impl<S> Layer<S> for ServerTimeLayer {
 }
 
 #[derive(Clone)]
-struct ServerTimeMiddleware<S> {
+pub struct ServerTimeMiddleware<S> {
     inner: S,
 }
 

@@ -4,7 +4,7 @@ use argon2::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, PgPool};
+use sqlx::prelude::FromRow;
 
 use crate::{AppErr, AppState};
 
@@ -22,12 +22,6 @@ pub struct User {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct SignInForm {
-    pub email: String,
-    pub passwd: String,
-}
-
-#[derive(Debug, Deserialize)]
 pub struct SignUpForm {
     pub username: String,
     pub email: String,
@@ -35,40 +29,52 @@ pub struct SignUpForm {
     pub avatar: String,
 }
 
-impl User {
-    /// Find a user by email
-    pub async fn find_by_email(email: &str, pg: &PgPool) -> Result<Option<User>, AppErr> {
+#[derive(Debug, Deserialize)]
+pub struct SignInForm {
+    pub email: String,
+    pub passwd: String,
+}
+
+impl AppState {
+    /// Create a user
+    pub async fn create_user(&self, form: SignUpForm) -> Result<User, AppErr> {
+        let passwd_hash = hash_passwd(&form.passwd)?;
+
         let user = sqlx::query_as(
-            "SELECT id, username, passwd, email, avatar, created_at, updated_at FROM t_user WHERE email = $1",
+            "INSERT INTO t_user (username, passwd, email, avatar) VALUES ($1, $2, $3, $4) RETURNING id, username, passwd, email, avatar, created_at, updated_at",
         )
-        .bind(email)
-        .fetch_optional(pg)
+        .bind(&form.username)
+        .bind(&passwd_hash)
+        .bind(&form.email)
+        .bind(&form.avatar)
+        .fetch_one(&self.pg)
         .await?;
 
         Ok(user)
     }
 
-    /// Create a new user
-    pub async fn create(
-        username: &str,
-        passwd: &str,
-        email: &str,
-        avatar: &str,
-        pg: &PgPool,
-    ) -> Result<Self, AppErr> {
-        let passwd_hash = hash_passwd(passwd)?;
-
-        let user = sqlx::query_as(
-            "INSERT INTO t_user (username, passwd, email, avatar) VALUES ($1, $2, $3, $4) RETURNING id, username, passwd, email, avatar, created_at, updated_at",
+    /// Verify user email and password
+    pub async fn verify_user(&self, form: SignInForm) -> Result<Option<User>, AppErr> {
+        let user: Option<User> = sqlx::query_as(
+            "SELECT id, username, passwd, email, avatar, created_at, updated_at FROM t_user where emial = $1"
         )
-        .bind(username)
-        .bind(passwd_hash)
-        .bind(email)
-        .bind(avatar)
-        .fetch_one(pg)
+        .bind(&form.email)
+        .fetch_optional(&self.pg)
         .await?;
 
-        Ok(user)
+        match user {
+            Some(user) => {
+                // verify user password
+                let is_valid = verify_passwd(&form.passwd, &user.passwd)?;
+                if is_valid {
+                    // check ad load workspace info
+                    Ok(Some(user))
+                } else {
+                    Ok(None)
+                }
+            }
+            None => Ok(None),
+        }
     }
 }
 
@@ -90,6 +96,33 @@ fn verify_passwd(passwd: &str, passwd_hash: &str) -> Result<bool, AppErr> {
         .is_ok();
 
     Ok(is_valid)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionUser {
+    pub id: i64,
+    pub username: String,
+    pub email: String,
+}
+
+impl From<User> for SessionUser {
+    fn from(user: User) -> Self {
+        Self {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+        }
+    }
+}
+
+impl SessionUser {
+    pub fn new(id: i64, username: String, email: String) -> Self {
+        Self {
+            id,
+            username,
+            email,
+        }
+    }
 }
 
 #[cfg(test)]

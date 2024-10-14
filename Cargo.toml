@@ -3,6 +3,7 @@ members = ["chat-server", "notify-server"]
 resolver = "2"
 
 [workspace.dependencies]
+chat-server = { path = "./chat-server" }
 anyhow = "1.0.89"
 thiserror = "1.0.64"
 tracing = "0.1.40"
@@ -11,5 +12,10 @@ serde = { version = "1.0.210", features = ["derive"] }
 serde_yaml = "0.9.34"
 tokio = { version = "1.40.0", features = ["rt", "rt-multi-thread", "macros"] }
 tower = "0.5.1"
-tower-http = { version = "0.6.1", features = ["compression-full", "cors", "fs", "trace"] }
+tower-http = { version = "0.6.1", features = [
+    "compression-full",
+    "cors",
+    "fs",
+    "trace",
+] }
 chrono = { version = "0.4.38", features = ["serde"] }
