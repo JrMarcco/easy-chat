@@ -1,5 +1,4 @@
 mod api;
-mod config;
 mod error;
 mod middleware;
 mod model;
@@ -12,14 +11,13 @@ use axum::{
     routing::{get, patch, post},
     Router,
 };
-use middleware::{set_layer, TokenVerifier};
-use model::SessionUser;
+use chat_core::AppConfig;
+use middleware::set_layer;
 use sqlx::PgPool;
 use std::{fmt::Debug, ops::Deref, sync::Arc};
 use tower_http::cors::{Any, CorsLayer};
 use util::{JwtDecodingKey, JwtEncodingKey};
 
-pub use config::AppConfig;
 pub use error::AppErr;
 
 #[derive(Debug, Clone)]
@@ -30,8 +28,8 @@ pub struct AppState {
 pub struct AppStateInner {
     pub(crate) config: AppConfig,
     pub(crate) pg: PgPool,
-    pub(crate) jwt_ek: JwtEncodingKey,
-    pub(crate) jwt_dk: JwtDecodingKey,
+    pub(crate) ek: JwtEncodingKey,
+    pub(crate) dk: JwtDecodingKey,
 }
 
 /// Deref to AppStateInner
@@ -62,12 +60,13 @@ pub async fn init_app(state: AppState) -> Result<Router, AppErr> {
         .route("/chat/:id/message", get(list_message_handler))
         .layer(cors);
 
+    let state_cloned = state.clone();
     let app = Router::new()
         .route("/", get(index_handler))
         .nest("/api", api)
-        .with_state(state.clone());
+        .with_state(state);
 
-    Ok(set_layer(state.clone(), app))
+    Ok(set_layer(state_cloned, app))
 }
 
 impl AppState {
@@ -76,25 +75,12 @@ impl AppState {
             .await
             .context("connectg to db fail")?;
 
-        let jwt_ek = JwtEncodingKey::load(&config.auth.private_key)?;
-        let jwt_dk = JwtDecodingKey::load(&config.auth.public_key)?;
+        let ek = JwtEncodingKey::load(&config.auth.private_key)?;
+        let dk = JwtDecodingKey::load(&config.auth.public_key)?;
 
         Ok(Self {
-            inner: Arc::new(AppStateInner {
-                config,
-                pg,
-                jwt_ek,
-                jwt_dk,
-            }),
+            inner: Arc::new(AppStateInner { config, pg, ek, dk }),
         })
-    }
-}
-
-impl TokenVerifier for AppState {
-    type Error = AppErr;
-
-    fn verify_token(&self, token: &str) -> Result<SessionUser, Self::Error> {
-        self.jwt_dk.verify(token)
     }
 }
 
@@ -116,8 +102,8 @@ mod test_util {
         pub async fn new_for_test() -> Result<(TestPg, Self), AppErr> {
             let config = AppConfig::try_load()?;
 
-            let jwt_dk = JwtDecodingKey::load(&config.auth.public_key)?;
-            let jwt_ek = JwtEncodingKey::load(&config.auth.private_key)?;
+            let ek = JwtEncodingKey::load(&config.auth.private_key)?;
+            let dk = JwtDecodingKey::load(&config.auth.public_key)?;
 
             let dsn_post = config.db.dsn.rfind('/').expect("invalid db dsn");
             let db_server_url = &config.db.dsn[..dsn_post];
@@ -125,12 +111,7 @@ mod test_util {
             let (test_db, pg) = init_test_pool(Some(db_server_url)).await;
 
             let state = Self {
-                inner: Arc::new(AppStateInner {
-                    config,
-                    pg,
-                    jwt_ek,
-                    jwt_dk,
-                }),
+                inner: Arc::new(AppStateInner { config, pg, ek, dk }),
             };
 
             Ok((test_db, state))

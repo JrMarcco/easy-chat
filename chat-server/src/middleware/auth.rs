@@ -1,5 +1,3 @@
-use core::fmt;
-
 use axum::{
     extract::{FromRequestParts, Query, Request, State},
     http::StatusCode,
@@ -13,23 +11,14 @@ use axum_extra::{
 use serde::Deserialize;
 use tracing::warn;
 
-use crate::{model::SessionUser, AppState};
-
-pub trait TokenVerifier {
-    type Error: fmt::Debug;
-
-    fn verify_token(&self, token: &str) -> Result<SessionUser, Self::Error>;
-}
+use crate::AppState;
 
 #[derive(Debug, Deserialize)]
 struct Params {
     token: String,
 }
 
-pub async fn verify_token<T>(State(state): State<AppState>, req: Request, next: Next) -> Response
-where
-    T: TokenVerifier + Clone + Send + Sync + 'static,
-{
+pub async fn verify_token(State(state): State<AppState>, req: Request, next: Next) -> Response {
     let (mut parts, body) = req.into_parts();
 
     let token =
@@ -54,7 +43,7 @@ where
         };
 
     // verify token and get user info
-    let req = match state.verify_token(&token) {
+    let req = match state.dk.verify(&token) {
         Ok(user) => {
             let mut req = Request::from_parts(parts, body);
             req.extensions_mut().insert(user);

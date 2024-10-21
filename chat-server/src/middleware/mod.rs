@@ -37,7 +37,7 @@ pub fn set_layer(state: AppState, app: Router) -> Router {
             )
             .layer(CompressionLayer::new().gzip(true).br(true).deflate(true))
             .layer(from_fn(x_request_id))
-            .layer(from_fn_with_state(state, verify_token::<AppState>))
+            .layer(from_fn_with_state(state, verify_token))
             .layer(ServerTimeLayer),
     )
 }

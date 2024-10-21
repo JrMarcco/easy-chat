@@ -1,7 +1,6 @@
-use std::fs::File;
-
 use anyhow::{bail, Result};
 use serde::Deserialize;
+use std::fs::File;
 
 #[derive(Debug, Deserialize)]
 pub struct AppConfig {

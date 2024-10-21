@@ -26,7 +26,7 @@ pub(crate) async fn sign_in_handler(
 
     match user {
         Some(user) => {
-            let token = state.jwt_ek.sign(user)?;
+            let token = state.ek.sign(user)?;
             let body = Json(AuthOutput::new(token));
             Ok((StatusCode::OK, body).into_response())
         }
@@ -42,7 +42,7 @@ pub(crate) async fn sign_up_handler(
     Json(input): Json<SignUpForm>,
 ) -> Result<impl IntoResponse, AppErr> {
     let user = state.create_user(input).await?;
-    let token = state.jwt_ek.sign(user)?;
+    let token = state.ek.sign(user)?;
 
     let body = Json(AuthOutput::new(token));
 

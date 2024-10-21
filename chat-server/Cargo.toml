@@ -10,6 +10,7 @@ license = "MIT"
 test-util = ["sqlx-db-tester"]
 
 [dependencies]
+chat-core = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
